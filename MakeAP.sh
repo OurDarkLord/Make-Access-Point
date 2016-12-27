@@ -7,6 +7,18 @@ oldmetric=""
 WlanInterface=""
 #functions
 
+function StartAP(){
+	airmon-ng start $WlanInterface
+	monInterface=$(airmon-ng |grep "mon" | awk -F " " '{print $2}')
+	cp ./hostapd.conf ./tempHostapd.conf
+	echo "interface=$monInterface" >> tempHostapd.conf
+	echo "starting AP"
+	tmux new-session -d -s AccessPoint 'hostapd -dd ./tempHostapd.conf'
+	tmux detach -s AccessPoint
+}
+
+#script
+
 gateway=$(route -n |grep "eth0"| grep "UG")
 
 
@@ -31,6 +43,7 @@ if [ -n "$gateway" ] ;then
 
 	WlanInterface=$(iw dev | awk -F " " 'NR==2 {print $2}' | grep "wlan")
 	echo "Interface that will be used for the AP = $WlanInterface"
+	StartAP
 else
 	echo "No ethernet connection, checking for wlan0"
 	gateway=$(route -n |grep "wlan0"| grep "UG")
@@ -56,6 +69,7 @@ else
 		echo "Interface that will be used for the AP = $WlanInterface"
 		if [ $WlanInterface != "wlan0" ] ;then
 			echo "making AP"
+			StartAP
 		else
 			echo "Wlan already in use, insert wifi usb or ethernet"
 			echo "quitting!!!"
@@ -65,3 +79,5 @@ else
 		echo "No internet connection found"
 	fi
 fi
+
+
