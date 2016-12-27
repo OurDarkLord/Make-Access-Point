@@ -27,7 +27,7 @@ function SetupDHCP(){
 	iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 	iptables -A FORWARD -i $WlanInterface -o $internetInterface -j ACCEPT
 
-	dhcpd -cf /etc/dhcp/dhcpd.conf -pf /var/run/dhcpd.pid $WlanInterface
+	dhcpd -cf ./dhcpd.conf -pf /var/run/dhcpd.pid $WlanInterface
 }
 
 #script
