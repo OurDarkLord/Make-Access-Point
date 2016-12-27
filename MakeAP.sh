@@ -5,16 +5,29 @@ gateway=""
 gatewayIp=""
 oldmetric=""
 WlanInterface=""
+internetInterface=""
 #functions
 
 function StartAP(){
-	airmon-ng start $WlanInterface
-	monInterface=$(airmon-ng |grep "mon" | awk -F " " '{print $2}')
+	# if you use it in monitor mode
+	#airmon-ng start $WlanInterface
+	#monInterface=$(airmon-ng |grep "mon" | awk -F " " '{print $2}')
 	cp ./hostapd.conf ./tempHostapd.conf
-	echo "interface=$monInterface" >> tempHostapd.conf
+	echo "interface=$WlanInterface" >> tempHostapd.conf
 	echo "starting AP"
 	tmux new-session -d -s AccessPoint 'hostapd -dd ./tempHostapd.conf'
 	tmux detach -s AccessPoint
+	SetupDHCP
+}
+function SetupDHCP(){
+	ip link set up dev $WlanInterface
+	ip addr add 192.168.1.1/24 dev $WlanInterface # arbitrary address
+	sysctl net.ipv4.ip_forward=1
+	iptables -t nat -A POSTROUTING -o $internetInterface -j MASQUERADE
+	iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+	iptables -A FORWARD -i $WlanInterface -o $internetInterface -j ACCEPT
+
+	dhcpd -cf /etc/dhcp/dhcpd.conf -pf /var/run/dhcpd.pid $WlanInterface
 }
 
 #script
@@ -40,7 +53,7 @@ if [ -n "$gateway" ] ;then
 		echo "metric already 1"
 	fi	
 	echo "Using Ethernet for internet"
-
+	internetInterface="eth0"
 	WlanInterface=$(iw dev | awk -F " " 'NR==2 {print $2}' | grep "wlan")
 	echo "Interface that will be used for the AP = $WlanInterface"
 	StartAP
@@ -64,7 +77,7 @@ else
 			echo "metric already 1"
 		fi
 		echo "Using Wlan0 for internet"
-
+		internetInterface="wlan0"
 		WlanInterface=$(iw dev | awk -F " " 'NR==2 {print $2}' | grep "wlan")
 		echo "Interface that will be used for the AP = $WlanInterface"
 		if [ $WlanInterface != "wlan0" ] ;then
