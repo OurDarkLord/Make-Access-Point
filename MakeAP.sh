@@ -12,10 +12,10 @@ function StartAP(){
 	# if you use it in monitor mode
 	#airmon-ng start $WlanInterface
 	#monInterface=$(airmon-ng |grep "mon" | awk -F " " '{print $2}')
-	cp ./hostapd.conf ./tempHostapd.conf
-	echo "interface=$WlanInterface" >> tempHostapd.conf
+	cp ./hostapd.conf /tmp/tempHostapd.conf
+	echo "interface=$WlanInterface" >> /tmp/tempHostapd.conf
 	echo "starting AP"
-	tmux new-session -d -s AccessPoint 'hostapd -dd ./tempHostapd.conf'
+	tmux new-session -d -s AccessPoint 'hostapd -dd /tmp/tempHostapd.conf'
 	tmux detach -s AccessPoint
 	SetupDHCP
 }
